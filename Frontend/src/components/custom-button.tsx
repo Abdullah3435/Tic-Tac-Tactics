@@ -1,9 +1,8 @@
-import React from "react";
 import "./custom-button.css";
 
 interface ButtonProps {
   text: string;
-  onClickFunc?: () => void;
+  onClickFunc?: (...args: any[]) => any;
   variant?: "primary-button" | "secondary-button";
   size?: "large" | "small";
 }

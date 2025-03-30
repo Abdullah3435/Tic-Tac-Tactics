@@ -3,31 +3,27 @@ import "../App.css";
 import CustomButton from "../components/custom-button";
 import Background from "../components/Background";
 
-function Home() {
+function Play() {
   const navigate = useNavigate();
 
   return (
-    <Background logo={true} footer={1}>
+    <Background footer={2}>
       <div className="App">
         <div className="vert-options">
           <li>
             <CustomButton
-              text="LOG IN"
+              text="SINGLE PLAYER"
               onClickFunc={() => navigate("/login")}
             />
           </li>
           <li>
             <CustomButton
-              text="SIGN UP"
-              onClickFunc={() => navigate("/signup")}
+              text="LOCAL PVP"
+              //   onClickFunc={() => navigate("/signup")}
             />
           </li>
           <li>
-            <CustomButton
-              text="SETTINGS"
-              onClickFunc={() => navigate("/play")}
-              size="small"
-            />
+            <CustomButton text="ONLINE" onClickFunc={() => navigate("/")} />
           </li>
         </div>
       </div>
@@ -35,4 +31,4 @@ function Home() {
   );
 }
 
-export default Home;
+export default Play;

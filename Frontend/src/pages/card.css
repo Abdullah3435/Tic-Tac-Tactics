@@ -1,0 +1,19 @@
+.login-card {
+  width: 500px;
+  background-color: #12022b;
+  margin: 0 auto;
+  padding: 30px;
+  border: 2px white solid;
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.input-field {
+  width: 300px;
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: white;
+}

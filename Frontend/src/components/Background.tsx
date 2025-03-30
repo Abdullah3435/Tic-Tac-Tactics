@@ -3,6 +3,8 @@ import "../App.css";
 import Cloud from "./cloud";
 
 interface ForegroundProps {
+  logo: Boolean;
+  footer: 1 | 2;
   children?: ReactNode;
 }
 
@@ -17,7 +19,11 @@ const cloudPos = {
   flipped: [false, false, false, true, true, false, false],
 };
 
-export default function Background({ children }: ForegroundProps) {
+export default function Background({
+  logo,
+  footer,
+  children,
+}: ForegroundProps) {
   return (
     <div>
       {cloudPos.posX.map((_, i) => (
@@ -43,17 +49,19 @@ export default function Background({ children }: ForegroundProps) {
           />
         </>
       ))}
-      <div className="w-full flex justify-center relative z-10 -mt-40">
-        <img
-          src="assets/Logo.png"
-          className="w-[28vw] min-w-[280px] py-8"
-          alt="Tic-Tac-Tactics Logo"
-        />
-      </div>
+      {logo ? (
+        <div className="w-full flex justify-center relative z-10 -mt-40">
+          <img
+            src="assets/Logo.png"
+            className="w-[28vw] min-w-[280px] py-8"
+            alt="Tic-Tac-Tactics Logo"
+          />
+        </div>
+      ) : null}
       <div className="relative z-10 w-full">{children}</div>
 
       <img
-        src="assets/Bottom.png"
+        src={`assets/Bottom${footer}.png`}
         className="w-[100vw] min-w-[280px] fixed bottom-0 left-0"
         alt="Footer"
       />
