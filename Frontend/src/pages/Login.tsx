@@ -43,7 +43,7 @@ function Login() {
               left: "15px",
             }}
           >
-            <CircularButton icon="HiX" onClick={() => navigate("/")} />
+            <CircularButton icon="HiX" onClickFunc={() => navigate("/")} />
           </div>
 
           <img
@@ -54,9 +54,16 @@ function Login() {
 
           {/* Log in using email & password */}
           <h2 className="text-4xl">LOG IN</h2>
-          {error && (
-            <div style={{ color: "red", margin: "10px 0" }}>{error}</div>
-          )}
+          <div
+            style={{
+              color: "red",
+              margin: "10px 0",
+              height: "20px",
+              minHeight: "20px",
+            }}
+          >
+            {error}
+          </div>
 
           {/* Form for login */}
           <form
@@ -110,10 +117,7 @@ function Login() {
                 right: "15px",
               }}
             >
-              <CircularButton
-                icon="HiArrowRight"
-                onClick={() => navigate("/play")}
-              />
+              <CircularButton icon="HiArrowRight" onClickFunc={handleSubmit} />
             </div>
           </form>
 
