@@ -1,28 +1,37 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../App.css';
+import { useNavigate } from "react-router-dom";
+import "../App.css";
+import CustomButton from "../components/custom-button";
+import Background from "../components/Background";
 
 function Home() {
-  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Fetch the Hello World message from Flask backend
-    fetch('http://localhost:5000/')
-      .then(response => response.json())
-      .then(data => setMessage(data.message))
-      .catch(error => console.error('Error fetching message:', error));
-  }, []);
-
   return (
-    <div className="App">
-      <h1>{message ? message : "Loading..."}</h1>
-      <div style={{ listStyle: 'none', display: 'flex', gap: '16px', flexDirection: 'column' }}>
-        <li> Home </li>
-        <li><button onClick={() => navigate('/login')}> Login </button> </li>
-        <li><button onClick={() => navigate('/signup')}> Signup </button> </li>
-      </div>      
-    </div> 
+    <Background>
+      <div className="App">
+        <div className="vert-options">
+          <li>
+            <CustomButton
+              text="LOG IN"
+              onClickFunc={() => navigate("/login")}
+            />
+          </li>
+          <li>
+            <CustomButton
+              text="SIGN UP"
+              onClickFunc={() => navigate("/signup")}
+            />
+          </li>
+          <li>
+            <CustomButton
+              text="SETTINGS"
+              onClickFunc={() => navigate("/signup")}
+              size="small"
+            />
+          </li>
+        </div>
+      </div>
+    </Background>
   );
 }
 
