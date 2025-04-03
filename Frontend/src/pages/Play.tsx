@@ -8,19 +8,19 @@ import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Firebase
 function Play() {
   const navigate = useNavigate();
   const startPvpMatch = async () => {
-    const user = auth.currentUser;  // Firebase user
+    const user = auth.currentUser; // Firebase user
     if (user) {
-      const idToken = await user.getIdToken();  // Get Firebase ID token
-  
+      const idToken = await user.getIdToken(); // Get Firebase ID token
+
       // Send request to start the matchmaking process
       const response = await fetch("/start-pvp-match", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${idToken}`,
+          Authorization: `Bearer ${idToken}`,
           "Content-Type": "application/json",
         },
       });
-  
+
       const data = await response.json();
       if (data.status === "success") {
         // Handle room creation or joining (update UI accordingly)
@@ -32,24 +32,24 @@ function Play() {
     }
   };
   return (
-    <Background footer={2}>
+    <Background logo={true} footer={2}>
       <div className="App">
         <div className="vert-options">
           <li>
             <CustomButton
               text="SINGLE PLAYER"
-              onClickFunc={() => navigate("/login")}
+              onClickFunc={() => navigate("/")}
             />
+          </li>
+          <li>
+            <CustomButton text="LOCAL PVP" onClickFunc={() => navigate("/")} />
           </li>
           <li>
             <CustomButton
-              text="LOCAL PVP"
-              onClickFunc={startPvpMatch}
-              //   onClickFunc={() => navigate("/signup")}
+              text="ONLINE"
+              // onClickFunc={startPvpMatch}
+              onClickFunc={() => navigate("/game")}
             />
-          </li>
-          <li>
-            <CustomButton text="ONLINE" onClickFunc={() => navigate("/")} />
           </li>
         </div>
       </div>
