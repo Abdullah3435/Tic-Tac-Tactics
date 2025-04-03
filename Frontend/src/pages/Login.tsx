@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import "../App.css";
 import "./card.css";
 import Background from "../components/Background";
-import SocialLogin from "../components/social-login";
+import SocialLogin from "../components/social-login";  // Import the SocialLogin component
 import CircularButton from "../components/circular-button";
+import { auth } from "../firebase"; // Firebase auth import
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Firebase functions for Google sign-in
 
 function Login() {
   const navigate = useNavigate();
@@ -26,6 +28,25 @@ function Login() {
     // For now, just navigate to dashboard or home after successful login
     navigate("/");
   };
+
+  const handleGoogleLogin = async () => {
+      const provider = new GoogleAuthProvider(); // Use the GoogleAuthProvider from the modular SDK
+      try {
+        const result = await signInWithPopup(auth, provider); // Use signInWithPopup from the modular SDK
+        const user = result.user;
+        if (user) {
+          console.log("User signed in with Google:", user);
+          // Handle the successful login (e.g., navigate to home page, store user data)
+        }
+      } catch (error) {
+        // Here, we narrow the type of `error` to be an instance of `Error`
+        if (error instanceof Error) {
+          console.error("Error during Google sign-in:", error.message);
+        } else {
+          console.error("Unknown error during Google sign-in");
+        }
+      }
+    };
 
   return (
     <Background logo={false} footer={1}>
@@ -149,7 +170,7 @@ function Login() {
                 text="Google"
                 bg="#db4437"
                 border="1px solid #db4437"
-                onClickFunc={() => console.log("Google login clicked")}
+                onClickFunc={handleGoogleLogin}
               />
               <SocialLogin
                 text="Facebook"
