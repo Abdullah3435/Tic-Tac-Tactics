@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 from firebase_admin import db
 
 class AutoMatchmaker:
@@ -6,23 +7,29 @@ class AutoMatchmaker:
         self.db_ref = db.reference("rooms")  # Firebase Realtime Database reference
 
     def start_matchmaking(self, user_id):
+        """
+        Start the matchmaking process by either finding an available room or creating a new room.
+        """
         # Check if there's a room with only one player waiting
         existing_room = self.find_available_room()
-        
+
         if existing_room:
             # If a room exists, add the player to that room
             self.join_existing_room(existing_room['room_id'], user_id)
             return {"status": "success", "message": f"Joined room {existing_room['room_id']}"}
         else:
-            # If no room exists, create a new one
+            # If no room exists, create a new one and wait for the second player to join
             new_room_id = self.create_new_room(user_id)
-            return {"status": "success", "message": f"Room created: {new_room_id}"}
+            return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player"}
 
     def find_available_room(self):
         """
         Check if there are any rooms with only one player waiting for a match.
         """
-        rooms = self.db_ref.get()
+        rooms = self.db_ref.get()  # Fetch rooms from Firebase
+        if rooms is None:
+            return None
+
         for room_id, room_data in rooms.items():
             if len(room_data['players']) == 1:  # Check if room has only 1 player
                 return {"room_id": room_id, "players": room_data['players']}
@@ -51,7 +58,31 @@ class AutoMatchmaker:
             "room_id": room_id,
             "players": [user_id],  # Add the first player to the room
             "status": "waiting",   # Room is waiting for a second player
+            "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")  # Store the creation timestamp
         }
         
+        # Add the room to Firebase
         self.db_ref.child(room_id).set(room_data)
+
+        # Wait for the second player to join (blocking until the room is full)
+        self.wait_for_second_player(room_id)
+
         return room_id  # Return the newly created room ID
+
+    def wait_for_second_player(self, room_id):
+        """
+        Block and wait for the second player to join the room.
+        """
+        room_ref = self.db_ref.child(room_id)
+        
+        while True:
+            room_data = room_ref.get()
+            if len(room_data['players']) == 2:  # Check if the room has both players
+                room_ref.update({'status': 'ready'})  # Mark the room as ready
+                break  # Exit the loop when the second player joins
+            else:
+                # Optionally, you can handle timeouts here (e.g., abort room creation if no second player joins in X minutes)
+                pass
+
+        # The room is now ready with two players
+

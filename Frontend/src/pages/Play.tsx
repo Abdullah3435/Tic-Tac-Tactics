@@ -8,29 +8,42 @@ import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Firebase
 function Play() {
   const navigate = useNavigate();
   const startPvpMatch = async () => {
-    const user = auth.currentUser; // Firebase user
+    const user = auth.currentUser;  // Firebase user
+    if (!user) {
+      console.log("User is not signed in.");
+      return;
+    }
+  
     if (user) {
-      const idToken = await user.getIdToken(); // Get Firebase ID token
-
+      const idToken = await user.getIdToken();  // Get Firebase ID token
+  
       // Send request to start the matchmaking process
-      const response = await fetch("/start-pvp-match", {
+      const response = await fetch("http://127.0.0.1:5000/start-pvp-match", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${idToken}`,
+          "Authorization": `Bearer ${idToken}`,
           "Content-Type": "application/json",
         },
       });
-
+  
       const data = await response.json();
+  
+      // blocking until the room is created for both players
+
       if (data.status === "success") {
-        // Handle room creation or joining (update UI accordingly)
-        console.log("Matchmaking successful:", data.message);
-        // Navigate to the game page or update UI
+        console.log("Room creation successful:", data.message);
+  
+        navigate("/game") // very bad code currently we just go with it for now
+
+        // Proceed with the game start logic after both players are in the room
+        // Backend has ensured both players are in the room by now
+        // Example: Navigate to the game page
       } else {
         console.log("Error:", data.error);
       }
     }
   };
+  
   return (
     <Background logo={true} footer={2}>
       <div className="App">
@@ -47,8 +60,8 @@ function Play() {
           <li>
             <CustomButton
               text="ONLINE"
-              // onClickFunc={startPvpMatch}
-              onClickFunc={() => navigate("/game")}
+              onClickFunc={startPvpMatch}
+              //onClickFunc={() => navigate("/game")}
             />
           </li>
         </div>
