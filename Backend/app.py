@@ -55,5 +55,28 @@ def start_pvp_match():
     # Respond back with the matchmaking result
     return jsonify(result)
 
+@app.route('/leave_room', methods=['POST'])
+def leave_room():
+    data = request.get_json()
+    room_id = data['room_id']
+    user_id = data['user_id']
+    
+    room_ref = db.reference(f"rooms/{room_id}")
+    room_data = room_ref.get()
+
+    if not room_data:
+        return {"status": "error", "message": "Room not found"}, 404
+
+    if user_id in room_data['players']:
+        room_data['players'].remove(user_id)
+
+        if not room_data['players']:
+            room_ref.delete()  # No players left, delete room
+        else:
+            room_ref.update({"players": room_data['players'], "status": "waiting"})
+
+    return {"status": "success", "message": "Player left the room"}
+
+
 if __name__ == "__main__":
     app.run(debug=True)

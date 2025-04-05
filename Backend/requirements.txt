@@ -1,0 +1,9 @@
+flask
+flask-cors
+firebase-admin
+bcrypt
+pyjwt
+python-dotenv
+google-auth-oauthlib
+google-auth-httplib2
+requests

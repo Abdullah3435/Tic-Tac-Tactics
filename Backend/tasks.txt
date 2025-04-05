@@ -1,0 +1,47 @@
+installed all the dependencies. 
+now need to set up the google console. 
+set up the console.json
+#######
+Go to Google Cloud Console (https://console.cloud.google.com/)
+
+Create a new project
+Or select an existing project
+
+
+Configure OAuth Consent Screen
+
+Go to "OAuth consent screen"
+Choose "External" user type
+Fill in required information:
+
+App name
+User support email
+Developer contact information
+
+
+
+
+Create OAuth 2.0 Credentials
+
+Go to "Credentials"
+Click "Create Credentials"
+Choose "OAuth client ID"
+Application type: Web application
+Add Authorized JavaScript origins:
+
+http://localhost:3000
+
+
+Add Authorized redirect URIs:
+
+http://localhost:5000/oauth2callback
+http://localhost:3000/oauth2callback
+
+
+
+
+Download Client Configuration
+
+After creating credentials, download the client_secret.json
+Place this file in your backend project directory
+#############

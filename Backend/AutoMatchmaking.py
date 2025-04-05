@@ -11,7 +11,9 @@ class AutoMatchmaker:
         Start the matchmaking process by either finding an available room or creating a new room.
         """
         # Check if there's a room with only one player waiting
-        existing_room = self.find_available_room()
+        # existing_room = self.find_available_room()
+        existing_room = self.find_available_room(user_id)
+
 
         if existing_room:
             # If a room exists, add the player to that room
@@ -22,18 +24,37 @@ class AutoMatchmaker:
             new_room_id = self.create_new_room(user_id)
             return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player"}
 
-    def find_available_room(self):
+    # def find_available_room(self):
+    #     """
+    #     Check if there are any rooms with only one player waiting for a match.
+    #     """
+    #     rooms = self.db_ref.get()  # Fetch rooms from Firebase
+    #     if rooms is None:
+    #         return None
+    #     for room_id, room_data in rooms.items():
+    #         if len(room_data['players']) == 1 and user_id not in room_data['players']:
+    #             return {"room_id": room_id, "players": room_data['players']}
+
+
+    #     for room_id, room_data in rooms.items():
+    #         if len(room_data['players']) == 1:  # Check if room has only 1 player
+    #             return {"room_id": room_id, "players": room_data['players']}
+    #     return None
+    def find_available_room(self, user_id):
         """
-        Check if there are any rooms with only one player waiting for a match.
+        Check if there are any rooms with only one player waiting for a match,
+        and make sure the user is not already in that room.
         """
         rooms = self.db_ref.get()  # Fetch rooms from Firebase
         if rooms is None:
             return None
 
         for room_id, room_data in rooms.items():
-            if len(room_data['players']) == 1:  # Check if room has only 1 player
+            if len(room_data['players']) == 1 and user_id not in room_data['players']:
                 return {"room_id": room_id, "players": room_data['players']}
+        
         return None
+
 
     def join_existing_room(self, room_id, user_id):
         """
