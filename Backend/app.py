@@ -99,7 +99,9 @@ def get_board(room_id):
                 {"players": [cell.state for cell in mini_board.cells]} 
                 for mini_board in large_board.mini_boards
             ],
-            "state": large_board.state
+            "state": large_board.state,
+            "turn" : large_board.turn,
+            "To_playboard" : large_board.to_playboard
         }
 
         return jsonify({"status": "success", "board": board_data}), 200
@@ -194,31 +196,12 @@ def update_board(room_id):
 
         if not large_board:
             return jsonify({"error": "Board data not found"}), 404
-        
-        # Check if the mini-board index is valid
-        if mini_board_index < 0 or mini_board_index > 8:
-            return jsonify({"error": "Invalid mini-board index"}), 400
 
-        mini_board = large_board.mini_boards[mini_board_index]
-        
-        # Check if the cell index is valid
-        if cell_index < 0 or cell_index > 8:
-            return jsonify({"error": "Invalid cell index"}), 400
+        # Attempt to update the large board (this will handle mini-board updates and game logic)
+        result = large_board.update_mini_board(mini_board_index, cell_index, value)
 
-        # Check if the mini-board is ready (if X or O already filled, block updates)
-        if mini_board.state in ["X", "O"]:
-            return jsonify({"error": "Cannot update a completed mini-board"}), 400
-        
-        # Update the specific cell
-        cell_updated = mini_board.update_cell(cell_index, value)
-
-        if not cell_updated:
-            return jsonify({"error": "Cell update failed (possibly already occupied)"}), 400
-
-        # Check if mini-board has a winner
-        winner = mini_board.check_winner()
-        if winner:
-            mini_board.state = winner  # Update mini-board state to X or O if there's a winner
+        if "Invalid" in result:  # If the update fails
+            return jsonify({"error": result}), 400
 
         # Save the updated board data back to Firebase
         m_board.save_large_board_to_db(large_board, room_id)
@@ -226,10 +209,16 @@ def update_board(room_id):
         # Trigger SSE to notify users about the update
         trigger_sse_update(room_id, large_board)
 
+        # Check if the large board has a winner
+        large_board_winner = large_board.check_winner()
+        if large_board_winner:
+            return jsonify({"status": "success", "message": f"{large_board_winner} wins the game!"}), 200
+
         return jsonify({"status": "success", "message": "Board updated successfully"}), 200
 
     except Exception as e:
         return jsonify({"error": f"Error updating board: {str(e)}"}), 500
+
 
 
 
