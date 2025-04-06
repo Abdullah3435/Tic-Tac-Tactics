@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from firebase_admin import db
+import Board
 
 class AutoMatchmaker:
     def __init__(self):
@@ -18,11 +19,11 @@ class AutoMatchmaker:
         if existing_room:
             # If a room exists, add the player to that room
             self.join_existing_room(existing_room['room_id'], user_id)
-            return {"status": "success", "message": f"Joined room {existing_room['room_id']}", "room_id": existing_room['room_id']}
+            return {"status": "success", "message": f"Joined room {existing_room['room_id']}", "room_id" : f"{existing_room['room_id']}"  } 
         else:
             # If no room exists, create a new one and wait for the second player to join
             new_room_id = self.create_new_room(user_id)
-            return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player", "room_id": new_room_id}
+            return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player", "room_id" : new_room_id }
 
     # def find_available_room(self):
     #     """
@@ -72,16 +73,20 @@ class AutoMatchmaker:
 
     def create_new_room(self, user_id):
         """
-        Create a new room and add the first player.
+        Create a new room and add the first player, also initialize the board.
         """
         room_id = str(uuid.uuid4())  # Generate a unique room ID
+        large_board = Board.initialize_empty_large_board()
+        print (large_board)
+
         room_data = {
             "room_id": room_id,
             "players": [user_id],  # Add the first player to the room
             "status": "waiting",   # Room is waiting for a second player
-            "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")  # Store the creation timestamp
+            "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),  # Store the creation timestamp
+            "board" : Board.jsonrep_board(large_board)
         }
-        
+
         # Add the room to Firebase
         self.db_ref.child(room_id).set(room_data)
 

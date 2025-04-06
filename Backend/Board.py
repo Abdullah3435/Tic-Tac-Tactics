@@ -65,7 +65,7 @@ class LargeBoard:
     def __init__(self):
         self.mini_boards = [MiniBoard() for _ in range(9)]
         self.state = None
-        self.turn = 'X' # has vals 'O' or 'X'
+        self.turn = "X" # has vals 'O' or 'X'
         self.to_playboard = None # has vals 0 to 8 or None (None means play any)
 
     def update_mini_board(self, mini_board_index, cell_index, value):
@@ -136,15 +136,22 @@ class LargeBoard:
         # Deserialize mini boards
         for i, mini_board_data in enumerate(data["mini_boards"]):
             mini_board = MiniBoard()
+
+            # For each mini-board, handle cells and state
             for j, cell_state in enumerate(mini_board_data["cells"]):
-                mini_board.cells[j] = Cell(cell_state)  # Rebuild each cell with its state
-            mini_board.state = mini_board_data.get("state")  # Restore mini-board state
+                # If cell state is an empty string, convert it to None
+                mini_board.cells[j] = Cell(cell_state if cell_state != "" else None)  # Convert empty string to None
+
+            # For mini-board state, if it's an empty string, set it to None
+            mini_board.state = mini_board_data["state"] if mini_board_data["state"] != "" else None
+            
             large_board.mini_boards[i] = mini_board
 
-        large_board.state = data["state"]
-        large_board.turn = data["turn"]
-        large_board.to_playboard = data["To_playboard"]
-    
+        # For large board state, turn, and to_playboard, if they are empty strings, convert to None
+        large_board.state = data["state"] if data["state"] != "" else None
+        large_board.turn = data["turn"] if data["turn"] != "" else None
+        large_board.to_playboard = data["To_playboard"] if data["To_playboard"] != "" else None
+
         return large_board
 
 
@@ -152,17 +159,36 @@ def save_large_board_to_db(large_board, room_id):
     large_board_data = {
         "mini_boards": [
             {
-                "cells": [cell.state for cell in mini_board.cells],
-                "state": mini_board.state
+                "cells": [cell.state if cell.state is not None else "" for cell in mini_board.cells],  # Replace None with ""
+                "state": mini_board.state if mini_board.state is not None else ""  # Replace None with ""
             }
             for mini_board in large_board.mini_boards
         ],
-        "state": large_board.state,
-        "turn": large_board.turn,
-        "To_playboard": large_board.to_playboard
+        "state": large_board.state if large_board.state is not None else "",  # Replace None with ""
+        "turn": large_board.turn if large_board.turn is not None else "",  # Replace None with ""
+        "To_playboard": large_board.to_playboard if large_board.to_playboard is not None else ""  # Replace None with ""
     }
 
+    print(f"Attempting to save the board: {large_board_data}")
     db.reference(f"rooms/{room_id}/board").set(large_board_data)
+    print("Board saved to Firebase.")
+
+
+def jsonrep_board(large_board):
+    large_board_data = {
+        "mini_boards": [
+            {
+                "cells": [cell.state if cell.state is not None else "" for cell in mini_board.cells],  # Replace None with ""
+                "state": mini_board.state if mini_board.state is not None else ""  # Replace None with ""
+            }
+            for mini_board in large_board.mini_boards
+        ],
+        "state": large_board.state if large_board.state is not None else "",  # Replace None with ""
+        "turn": large_board.turn if large_board.turn is not None else "",  # Replace None with ""
+        "To_playboard": large_board.to_playboard if large_board.to_playboard is not None else ""  # Replace None with ""
+    }
+
+    return large_board_data
 
 
 def load_large_board_from_db(room_id):
@@ -187,5 +213,4 @@ def initialize_empty_large_board():
     
     # Set the state of the large board to None (game hasn't been won yet)
     large_board.state = None
-
     return large_board
