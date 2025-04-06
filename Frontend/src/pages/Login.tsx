@@ -26,7 +26,7 @@ function Login() {
     // Here you would typically make an API call to authenticate the user
     console.log("Submitting login:", { email, password });
     // For now, just navigate to dashboard or home after successful login
-    navigate("/");
+    navigate("/play");
   };
 
   const handleGoogleLogin = async () => {
@@ -37,6 +37,11 @@ function Login() {
         if (user) {
           console.log("User signed in with Google:", user);
           // Handle the successful login (e.g., navigate to home page, store user data)
+          // Optional: Save user info to localStorage or context
+          // localStorage.setItem("user", JSON.stringify(user));
+
+          // Navigate to play
+          navigate("/play"); // or navigate("/home") if that's your route
         }
       } catch (error) {
         // Here, we narrow the type of `error` to be an instance of `Error`
