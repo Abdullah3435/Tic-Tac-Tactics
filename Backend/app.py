@@ -159,12 +159,12 @@ def sse(room_id):
 
         return Response(send_sse_data(), content_type='text/event-stream')
     
-    # Fetch user_id from Firebase token (assuming it's passed in Authorization header)
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return jsonify({"error": "Missing Authorization header"}), 400
+    # Get token from query parameters instead of Authorization header
+    token = request.args.get('token')
+    if not token:
+        return jsonify({"error": "Missing token parameter"}), 400
     
-    user_id = verify_token(auth_header.split('Bearer ')[1])
+    user_id = verify_token(token)
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     

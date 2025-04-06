@@ -8,42 +8,46 @@ import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Firebase
 function Play() {
   const navigate = useNavigate();
   const startPvpMatch = async () => {
-    const user = auth.currentUser;  // Firebase user
+    const user = auth.currentUser; // Firebase user
     if (!user) {
       console.log("User is not signed in.");
       return;
     }
-  
-    if (user) {
-      const idToken = await user.getIdToken();  // Get Firebase ID token
-  
+
+    try {
+      const idToken = await user.getIdToken(); // Get Firebase ID token
+
       // Send request to start the matchmaking process
       const response = await fetch("http://127.0.0.1:5000/start-pvp-match", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${idToken}`,
+          Authorization: `Bearer ${idToken}`,
           "Content-Type": "application/json",
         },
       });
-  
+
       const data = await response.json();
-  
-      // blocking until the room is created for both players
 
       if (data.status === "success") {
         console.log("Room creation successful:", data.message);
-  
-        navigate("/game") // very bad code currently we just go with it for now
 
-        // Proceed with the game start logic after both players are in the room
-        // Backend has ensured both players are in the room by now
-        // Example: Navigate to the game page
+        // Store room ID in localStorage for use in the game component
+        localStorage.setItem("roomId", data.room_id);
+        console.log("Room ID stored in localStorage:", data.room_id);
+
+        // Store token for SSE connection
+        localStorage.setItem("userToken", idToken);
+
+        // Navigate to game page (SSE connection will be handled in GameGrid)
+        navigate("/game");
       } else {
         console.log("Error:", data.error);
       }
+    } catch (error) {
+      console.error("Failed to start PvP match:", error);
     }
   };
-  
+
   return (
     <Background logo={true} footer={2}>
       <div className="App">
@@ -58,11 +62,7 @@ function Play() {
             <CustomButton text="LOCAL PVP" onClickFunc={() => navigate("/")} />
           </li>
           <li>
-            <CustomButton
-              text="ONLINE"
-              onClickFunc={startPvpMatch}
-              //onClickFunc={() => navigate("/game")}
-            />
+            <CustomButton text="ONLINE" onClickFunc={startPvpMatch} />
           </li>
         </div>
       </div>

@@ -18,11 +18,11 @@ class AutoMatchmaker:
         if existing_room:
             # If a room exists, add the player to that room
             self.join_existing_room(existing_room['room_id'], user_id)
-            return {"status": "success", "message": f"Joined room {existing_room['room_id']}"}
+            return {"status": "success", "message": f"Joined room {existing_room['room_id']}", "room_id": existing_room['room_id']}
         else:
             # If no room exists, create a new one and wait for the second player to join
             new_room_id = self.create_new_room(user_id)
-            return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player"}
+            return {"status": "success", "message": f"Room created: {new_room_id}, waiting for second player", "room_id": new_room_id}
 
     # def find_available_room(self):
     #     """
