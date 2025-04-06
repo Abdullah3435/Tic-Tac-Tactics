@@ -6,6 +6,8 @@ from flask_cors import CORS  # Import CORS
 import Board as m_board
 import threading
 import time
+import json  # Import json module for manual serialization
+import random  # Add import for random symbol assignment
 
 firebase_init.initfirebase()
 
@@ -89,19 +91,41 @@ def get_board(room_id):
     try:
         # Load the large board from the database
         large_board = m_board.load_large_board_from_db(room_id)
-
+        
         if not large_board:
             return jsonify({"error": "Board data not found"}), 404
         
+        # Get room data to determine player symbols
+        room_ref = db.reference(f"rooms/{room_id}")
+        room_data = room_ref.get()
+        
+        # Get current user's ID from token
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Missing or invalid Authorization header"}), 400
+            
+        id_token = auth_header.split('Bearer ')[1]
+        user_id = verify_token(id_token)
+        
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+            
+        # Get player's symbol (X or O)
+        player_symbol = None
+        if room_data and "player_symbols" in room_data:
+            player_symbol = room_data["player_symbols"].get(user_id)
+            
         # Convert the large board to a dictionary to send as a response
         board_data = {
             "mini_boards": [
-                {"players": [cell.state for cell in mini_board.cells]} 
+                {"cells": [cell.state for cell in mini_board.cells], 'state': mini_board.state} 
                 for mini_board in large_board.mini_boards
             ],
             "state": large_board.state,
-            "turn" : large_board.turn,
-            "To_playboard" : large_board.to_playboard
+            "turn": large_board.turn,
+            "To_playboard": large_board.to_playboard,
+            "player_symbol": player_symbol,  # Send player's symbol to frontend
+            "is_player_turn": (player_symbol == large_board.turn)
         }
 
         return jsonify({"status": "success", "board": board_data}), 200
@@ -112,25 +136,41 @@ def get_board(room_id):
 
 # Function to trigger SSE update for the room
 def trigger_sse_update(room_id, large_board):
-    room_ref = db.reference(f"rooms/{room_id}")
-    room_data = room_ref.get()
-    
-    if not room_data:
-        return
-    
-    players = room_data['players']
-    if room_id in sse_connections:
-        for user_id in players:
-            # Ensure user is connected before sending updates
-            if user_id in sse_connections[room_id]:
-                for connection in sse_connections[room_id][user_id]:
-                    try:
-                        connection.put({"board": large_board, "status": "update"})
-                    except Exception as e:
-                        print(f"Error sending SSE to user {user_id}: {e}")
-                    finally:
-                        # Ensure connection is removed on error or when no longer needed
-                        clean_up_connection(room_id, user_id, connection)
+    try:
+        room_ref = db.reference(f"rooms/{room_id}")
+        room_data = room_ref.get()
+        
+        if not room_data:
+            return
+        
+        players = room_data['players']
+        player_symbols = room_data.get('player_symbols', {})
+        
+        # Convert the large board to a dictionary to send as a response
+        board_data = {
+            "mini_boards": [
+                {"cells": [cell.state for cell in mini_board.cells], 'state': mini_board.state} 
+                for mini_board in large_board.mini_boards
+            ],
+            "state": large_board.state,
+            "turn": large_board.turn,
+            "To_playboard": large_board.to_playboard
+        }
+        
+        if room_id in sse_connections:
+            for user_id in players:
+                if user_id in sse_connections[room_id]:
+                    # Add player-specific information
+                    player_board_data = dict(board_data)
+                    player_board_data["player_symbol"] = player_symbols.get(user_id)
+                    player_board_data["is_player_turn"] = (player_board_data["player_symbol"] == large_board.turn)
+                    
+                    sse_connections[room_id][user_id].append({
+                        "board": player_board_data, 
+                        "status": "update"
+                    })
+    except Exception as e:
+        print(f"Error in trigger_sse_update: {e}")
 
 # SSE endpoint to send updates to clients
 @app.route('/events/<room_id>', methods=['GET'])
@@ -142,24 +182,38 @@ def sse(room_id):
 
         if user_id not in sse_connections[room_id]:
             sse_connections[room_id][user_id] = []
+            
+        print(f"SSE connection established for user {user_id} in room {room_id}")
 
         def send_sse_data():
             try:
                 while True:
-                    data = sse_connections[room_id][user_id]
-                    if data:
-                        for update in data:
-                            yield f"data: {update}\n\n"
-                    time.sleep(1)  # Prevent tight loop if no data
+                    if room_id in sse_connections and user_id in sse_connections[room_id]:
+                        if sse_connections[room_id][user_id]:
+                            updates = list(sse_connections[room_id][user_id])
+                            sse_connections[room_id][user_id] = []
+                            
+                            for update in updates:
+                                # Use manual JSON serialization instead of jsonify
+                                # to avoid application context issues
+                                try:
+                                    update_json = json.dumps(update)
+                                    yield f"data: {update_json}\n\n"
+                                    print(f"Sent update to user {user_id}")
+                                except Exception as json_err:
+                                    print(f"Error serializing update: {json_err}")
+                    time.sleep(0.5)
             except Exception as e:
                 print(f"Error in SSE stream for {user_id}: {e}")
             finally:
-                # Clean up when the connection is closed or an error occurs
-                clean_up_connection(room_id, user_id)
+                # Make sure to clean up the connection when done
+                try:
+                    clean_up_connection(room_id, user_id)
+                except Exception as cleanup_err:
+                    print(f"Error during connection cleanup: {cleanup_err}")
 
         return Response(send_sse_data(), content_type='text/event-stream')
     
-    # Get token from query parameters instead of Authorization header
     token = request.args.get('token')
     if not token:
         return jsonify({"error": "Missing token parameter"}), 400
@@ -171,45 +225,66 @@ def sse(room_id):
     return generate(user_id)
 
 def clean_up_connection(room_id, user_id, connection=None):
-    # Remove the connection from the tracking dictionary if it's closed or no longer valid
+    print(f"Cleaning up connection for user {user_id} in room {room_id}")
     if room_id in sse_connections:
         if user_id in sse_connections[room_id]:
-            if connection:
-                sse_connections[room_id][user_id].remove(connection)
-            # Clean up the user entry if no connections are left
-            if not sse_connections[room_id][user_id]:
+            if connection is None:
                 del sse_connections[room_id][user_id]
-        # Remove the room entry if no players are left
+                print(f"Removed user {user_id} from room {room_id}")
         if not sse_connections[room_id]:
             del sse_connections[room_id]
+            print(f"Removed room {room_id} from SSE connections")
 
 @app.route('/update-board/<room_id>', methods=['POST'])
 def update_board(room_id):
     try:
         data = request.get_json()
-        mini_board_index = data.get("mini_board_index")  # Index of the mini-board (0-8)
-        cell_index = data.get("cell_index")  # Index of the cell within the mini-board (0-8)
-        value = data.get("value")  # The value to be set for the cell ('X' or 'O')
+        mini_board_index = data.get("mini_board_index")
+        cell_index = data.get("cell_index")
+        value = data.get("value")  # 'X' or 'O'
 
-        # Load the large board from the database
+        # Verify the user's identity and turn
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Missing or invalid Authorization header"}), 400
+            
+        id_token = auth_header.split('Bearer ')[1]
+        user_id = verify_token(id_token)
+        
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+            
+        # Get room data to verify player symbol
+        room_ref = db.reference(f"rooms/{room_id}")
+        room_data = room_ref.get()
+        
+        if not room_data or "player_symbols" not in room_data:
+            return jsonify({"error": "Room data not found or incomplete"}), 404
+            
+        player_symbol = room_data["player_symbols"].get(user_id)
+        
+        # Load the large board
         large_board = m_board.load_large_board_from_db(room_id)
-
         if not large_board:
             return jsonify({"error": "Board data not found"}), 404
+            
+        # Check if it's the player's turn
+        if (player_symbol != large_board.turn):
+            return jsonify({"error": "Not your turn"}), 403
+            
+        # Verify the value matches the player's symbol
+        if value != player_symbol:
+            return jsonify({"error": "Invalid move: wrong symbol"}), 400
 
-        # Attempt to update the large board (this will handle mini-board updates and game logic)
+        # Rest of the function remains the same
         result = large_board.update_mini_board(mini_board_index, cell_index, value)
 
-        if "Invalid" in result:  # If the update fails
+        if "Invalid" in result:
             return jsonify({"error": result}), 400
 
-        # Save the updated board data back to Firebase
         m_board.save_large_board_to_db(large_board, room_id)
-
-        # Trigger SSE to notify users about the update
         trigger_sse_update(room_id, large_board)
 
-        # Check if the large board has a winner
         large_board_winner = large_board.check_winner()
         if large_board_winner:
             return jsonify({"status": "success", "message": f"{large_board_winner} wins the game!"}), 200

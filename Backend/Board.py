@@ -71,7 +71,7 @@ class LargeBoard:
     def update_mini_board(self, mini_board_index, cell_index, value):
         mini_board = self.mini_boards[mini_board_index]
 
-        if (mini_board_index != None) and (mini_board_index != self.to_playboard):
+        if (self.to_playboard != None) and (mini_board_index != self.to_playboard):
             return f"Invalid Board attempt allowable board is {self.to_playboard}"
         if value != self.turn:
             return f"Invalid Attempt current turn is for {self.turn}"
@@ -79,6 +79,8 @@ class LargeBoard:
         if mini_board.update_cell(cell_index, value):
             self.turn = "O" if self.turn == "X" else "X"
             self.to_playboard = cell_index
+            if self.mini_boards[self.to_playboard].state:
+                self.to_playboard = None
 
             winner = mini_board.check_winner()
             if winner:
@@ -195,6 +197,7 @@ def load_large_board_from_db(room_id):
     """Fetch the large board from the database and return it as a LargeBoard object."""
     ref = db.reference(f"rooms/{room_id}/board")
     data = ref.get()
+    # print(data)
     
     if data:
         return LargeBoard.from_dict(data)  # Deserialize data into LargeBoard

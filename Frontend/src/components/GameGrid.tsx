@@ -18,6 +18,9 @@ function GameGrid({
   const [activeBoard, setActiveBoard] = useState<Number | null>(null);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [playerSymbol, setPlayerSymbol] = useState<string | null>(null);
+  const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(false);
+  const [gameStatus, setGameStatus] = useState<string>("");
 
   // Initialize SSE connection on component mount
   useEffect(() => {
@@ -111,41 +114,59 @@ function GameGrid({
   };
 
   const updateBoardFromSSE = (boardData: any) => {
-    // Implementation depends on your board structure
-    // This is a placeholder for updating the game state from SSE data
     console.log("Updating board from SSE data:", boardData);
 
-    // Example update logic (adjust based on your actual data structure):
     if (boardData.mini_boards) {
       // Convert the backend board format to your frontend format
-      // This is just an example and needs to be adjusted
       const updatedBoards = gameBoards.map((board, index) => {
         return {
           ...board,
-          Board: convertBoardFormat(boardData.mini_boards[index].players),
+          Board: convertCellsToStringArray(boardData.mini_boards[index].cells),
           BoardState: boardData.mini_boards[index].state || 0,
         };
       });
 
       setGameBoards(updatedBoards);
       setCurrentTurn(boardData.turn || currentTurn);
-      setActiveBoard(
-        boardData.To_playboard !== undefined ? boardData.To_playboard : null
-      );
+
+      if (
+        boardData.To_playboard !== undefined &&
+        boardData.To_playboard !== -1
+      ) {
+        setActiveBoard(boardData.To_playboard);
+      } else {
+        setActiveBoard(null);
+      }
+
+      // Update player-specific information
+      if (boardData.player_symbol !== undefined) {
+        setPlayerSymbol(boardData.player_symbol);
+      }
+
+      if (boardData.is_player_turn !== undefined) {
+        setIsPlayerTurn(boardData.is_player_turn);
+      }
     }
   };
 
-  // Helper function to convert board format (adjust based on your data structures)
-  const convertBoardFormat = (players: any) => {
-    // This is just a placeholder. Implement based on your actual data structure
-    return players;
+  // Helper function to convert cell values from backend format to frontend format
+  const convertCellsToStringArray = (cells: any[]) => {
+    // Convert numerical values to strings and null for empty cells
+    return cells.map((cell) => {
+      if (cell === 0 || cell === null) return null;
+      if (cell === 1) return "X";
+      if (cell === 2) return "O";
+      return cell.toString(); // Handle any other case
+    });
   };
 
-  const handleCellClick = async (
-    boardNum: Number,
-    rowIndex: number,
-    colIndex: number
-  ) => {
+  const handleCellClick = async (boardNum: Number, cellIndex: number) => {
+    // Check if it's the player's turn
+    if (!isPlayerTurn) {
+      setGameStatus("Wait for your turn!");
+      return;
+    }
+
     // Make a deep copy of the boards
     const newBoards = JSON.parse(JSON.stringify(gameBoards));
     const boardIndex = newBoards.findIndex(
@@ -153,19 +174,18 @@ function GameGrid({
     );
 
     if (boardIndex !== -1) {
-      // Update the cell with current player's mark
-      newBoards[boardIndex].Board[rowIndex][colIndex] = currentTurn;
+      // Update the cell with player's symbol
+      newBoards[boardIndex].Board[cellIndex] = playerSymbol;
 
       // Update the active board for the next move
-      const nextActiveBoard = 3 * rowIndex + colIndex;
-      if (newBoards[nextActiveBoard].BoardState === 0) {
-        setActiveBoard(nextActiveBoard);
+      if (newBoards[cellIndex].BoardState === 0) {
+        setActiveBoard(cellIndex);
       } else {
         setActiveBoard(null);
       }
 
-      // Switch turns
-      setCurrentTurn(3 - currentTurn);
+      // No need to switch turns locally - will be updated via SSE
+      setIsPlayerTurn(false);
 
       // Update the boards locally
       setGameBoards(newBoards);
@@ -175,8 +195,8 @@ function GameGrid({
         await sendBoardUpdate(
           roomId,
           boardNum.valueOf(),
-          rowIndex * 3 + colIndex,
-          currentTurn
+          cellIndex,
+          playerSymbol || ""
         );
       }
     }
@@ -186,7 +206,7 @@ function GameGrid({
     roomId: string,
     miniBoardIndex: number,
     cellIndex: number,
-    value: number
+    value: string
   ) => {
     try {
       const user = auth.currentUser;
@@ -208,7 +228,7 @@ function GameGrid({
           body: JSON.stringify({
             mini_board_index: miniBoardIndex,
             cell_index: cellIndex,
-            value: value === 1 ? "X" : "O", // Assuming 1=X and 2=O, adjust as needed
+            value: value,
           }),
         }
       );
@@ -218,25 +238,45 @@ function GameGrid({
 
       if (data.status !== "success") {
         console.error("Failed to update board:", data.error);
-        // You might want to revert the local board update if the server rejected it
+        setGameStatus(data.error || "Error updating board");
+        // Revert the local board update if the server rejected it
+        fetchBoardState(roomId);
+      } else if (data.message) {
+        // setGameStatus(data.message);
+        setGameStatus("");
       }
     } catch (error) {
       console.error("Error updating board:", error);
+      setGameStatus("Network error. Try again.");
     }
   };
 
   return (
-    <div className="GameGrid">
-      {gameBoards.map((board, index) => (
-        <GameBoard
-          key={index}
-          BoardNum={board.BoardNum}
-          BoardState={board.BoardState}
-          Board={board.Board}
-          onCellClick={handleCellClick}
-          isActive={activeBoard === null || activeBoard === board.BoardNum}
-        />
-      ))}
+    <div className="game-container">
+      <div className="game-info">
+        {gameStatus && <div className="game-status">{gameStatus}</div>}
+        <div className="player-info">
+          Your symbol: {playerSymbol || "Loading..."}
+          <span className={isPlayerTurn ? "your-turn" : "waiting"}>
+            {isPlayerTurn ? "Your Turn" : "Opponent's Turn"}
+          </span>
+        </div>
+      </div>
+      <div className="GameGrid">
+        {gameBoards.map((board, index) => (
+          <GameBoard
+            key={index}
+            BoardNum={board.BoardNum}
+            BoardState={board.BoardState}
+            Board={board.Board}
+            onCellClick={handleCellClick}
+            isActive={
+              (activeBoard === null || activeBoard === board.BoardNum) &&
+              isPlayerTurn
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
