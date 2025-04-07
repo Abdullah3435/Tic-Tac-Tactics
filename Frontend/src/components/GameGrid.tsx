@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./GameGrid.css";
 import GameBoard, { GameBoardProps } from "./GameBoard";
 import { auth } from "../firebase"; // Import Firebase auth
+import { config } from "../config"; // Import the config
 
 export interface GameGridProps {
   GameBoards: Array<GameBoardProps>;
@@ -52,8 +53,9 @@ function GameGrid({
       const idToken = await user.getIdToken();
 
       // Use token as a query parameter instead of Authorization header
+      // with updated base URL
       const es = new EventSource(
-        `http://127.0.0.1:5000/events/${roomId}?token=${idToken}`
+        `${config.apiBaseUrl}/events/${roomId}?token=${idToken}`
       );
 
       console.log("SSE initialized for room:", roomId);
@@ -92,14 +94,11 @@ function GameGrid({
       }
 
       const idToken = await user.getIdToken();
-      const response = await fetch(
-        `http://127.0.0.1:5000/get-board/${roomId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
+      const response = await fetch(`${config.apiBaseUrl}/get-board/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
 
       const data = await response.json();
       if (data.status === "success") {
@@ -218,7 +217,7 @@ function GameGrid({
       const idToken = await user.getIdToken();
 
       const response = await fetch(
-        `http://127.0.0.1:5000/update-board/${roomId}`,
+        `${config.apiBaseUrl}/update-board/${roomId}`,
         {
           method: "POST",
           headers: {

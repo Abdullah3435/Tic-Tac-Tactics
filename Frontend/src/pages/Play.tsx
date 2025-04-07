@@ -4,6 +4,7 @@ import CustomButton from "../components/custom-button";
 import Background from "../components/Background";
 import { auth } from "../firebase"; // Firebase auth import
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Firebase functions for Google sign-in
+import { config } from "../config"; // Import the config
 
 function Play() {
   const navigate = useNavigate();
@@ -17,8 +18,8 @@ function Play() {
     try {
       const idToken = await user.getIdToken(); // Get Firebase ID token
 
-      // Send request to start the matchmaking process
-      const response = await fetch("http://127.0.0.1:5000/start-pvp-match", {
+      // Send request to start the matchmaking process using the config
+      const response = await fetch(`${config.apiBaseUrl}/start-pvp-match`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${idToken}`,
