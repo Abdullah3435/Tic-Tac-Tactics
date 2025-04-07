@@ -44,6 +44,10 @@ class MiniBoard:
             [0, 4, 8],  # Diagonal top-left to bottom-right
             [2, 4, 6]   # Diagonal top-right to bottom-left
         ]
+
+        # Get the states of the mini-boards (each mini-board's winner)
+        all_states = [cell.state for cell in self.cells]
+        
         
         # Check each condition for a winner
         for condition in win_conditions:
@@ -54,6 +58,11 @@ class MiniBoard:
             if states[0] is not None and states[0] == states[1] == states[2]:
                 self.state = states[0]  # Set the winner ("X" or "O")
                 return self.state
+        
+                # Check if all mini-boards are filled and there is no winner
+        if all(state is not None for state in all_states):  # All mini-boards filled
+            self.state = "C"  # Draw (No winner)
+            return "C"
         
         return None  # No winner yet
 
@@ -71,33 +80,33 @@ class LargeBoard:
     def update_mini_board(self, mini_board_index, cell_index, value):
         mini_board = self.mini_boards[mini_board_index]
 
-        if (self.to_playboard != None) and (mini_board_index != self.to_playboard):
+        #condition to return and disallow the move
+        if (self.state): # if alr won
+            return f"Game Already won by : {self.state}"
+        
+        if (self.to_playboard != None) and (mini_board_index != self.to_playboard): # if played in an invalid board (Game logic)
             return f"Invalid Board attempt allowable board is {self.to_playboard}"
-        if value != self.turn:
+        if value != self.turn: #if not Your turn 
             return f"Invalid Attempt current turn is for {self.turn}"
         
         if mini_board.update_cell(cell_index, value):
             self.turn = "O" if self.turn == "X" else "X"
             self.to_playboard = cell_index
+
+            miniwinner = mini_board.check_winner()
+            bigwinner = self.check_winner()
+
             if self.mini_boards[self.to_playboard].state:
                 self.to_playboard = None
-
-            winner = mini_board.check_winner()
-            if winner:
-                return f"Mini-board {mini_board_index} has a winner: {winner}"
+                
+            if miniwinner:
+                if(bigwinner):
+                    return f"Mini-board {mini_board_index} has a winner: {miniwinner} | Large Board has a winner {bigwinner}"
+                return f"Mini-board {mini_board_index} has a winner: {miniwinner}"
             return "Cell updated successfully"
-        return "Invalid Move"
-
-    def check_winner(self):
-        mini_board_states = [mini_board.state for mini_board in self.mini_boards]
         
-        if mini_board_states.count("X") == 9:
-            self.state = "X"
-            return "X"
-        if mini_board_states.count("O") == 9:
-            self.state = "O"
-            return "O"
-        return None
+
+        return "Invalid Move"
     
     def check_winner(self):
         """Check if the large board has a winner."""
@@ -124,6 +133,11 @@ class LargeBoard:
             if states[0] is not None and states[0] == states[1] == states[2]:
                 self.state = states[0]  # Set the winner ("X" or "O")
                 return self.state
+            
+        # Check if all mini-boards are filled and there is no winner
+        if all(state is not None for state in mini_board_states):  # All mini-boards filled
+            self.state = "C"  # Draw (No winner)
+            return "C"
         
         return None  # No winner yet
 

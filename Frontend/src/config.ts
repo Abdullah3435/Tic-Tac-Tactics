@@ -7,7 +7,7 @@
 // 2. hostname if you have DNS set up (e.g., "my-server:5000")
 // 3. localhost if running on same machine (e.g., "localhost:5000")
 
-const API_BASE_URL = "http://10.20.5.165:5000"; // Replace with your actual local IP
+const API_BASE_URL = "http://192.168.0.100:5000"; // Replace with your actual local IP
 
 export const config = {
   apiBaseUrl: API_BASE_URL,
