@@ -1,14 +1,67 @@
 1 - homepage loads
-    local hosts connect
-    user joins room
-    no user join rooms it is already in. 
+    1-local hosts server is reachable and connect -/ 
+    2-user can create a new room
+    3-user joins room
+    4-no user join rooms it is already in. -/ 
+    5-user cannot join a full room
+    6-one user can play only one game  - x (failed) user was able to join multiple games
+
 2 - sign-up / log-in options
-    gives sign-up option with google
+    1-gives sign-up option with google  -/ screen shows up
+    2-firebase registering users correctly
+    3-firebase logging in users correctly
+
 3 - Default game state
-    Game initializes
-    empty boards
+    1-Game initializes with both users joined -/
+    2-empty boards and visible-/
+    3-timer - x not initialized
+
 4 - game rendering
-    game states synchronously changing for both players
+    1-game states synchronously changing for both players ( a move by player 1 is reflected on player 2's screen) -/ (3 seconds delay)
+    2-UI updates after every move with correct animations 
+    
 5 - game logic
-    correct moves 
-    O and X 
+    a- correct moves being registered
+        1-player cannot play in an already-occipied cell  -/
+        2-turns alternate correctly between players
+        3-game prevents moves when it is not the other player's turn
+        4-Test cases for each cell -
+            1-winner in a row
+            2-winner in a column 
+            3-winner in a diagonal
+            4-no winner - draw condition
+    b- game still going on - if no one wins yet or draw condition met
+
+6 - Security checks
+    only the authenticated users can join the room 
+
+7 - responsiveness
+    a- General Layout
+        1-Game layout scales correctly on screen.sizes.
+        2-Navbar/menu is visible and functional across devices.
+        3-Scrollbars only appear when necessary (no horizontal scroll on small screens).
+
+    b- Game Board 
+        1-Game board resizes proportionally to screen width.
+        2-Tap targets (cells) are large enough.
+        3-Board doesn't overflow container on smaller screens.
+        4-Font sizes adjust or stay readable on smaller screens.
+
+    c- Modals / Dialogs (e.g., Win/Draw Messages)
+        1- Modals are centered and readable on all devices.
+        2- Modal content does not overflow or clip on small screens.
+        3- Buttons inside modals are tappable and not too close to each other.
+
+    d- Authentication Pages
+        1- Login/Sign-up forms stack vertically on mobile.
+        2- Google login button is visible and responsive.
+        3- No element overflows or becomes inaccessible.
+
+    e- Room Join Screen
+        1- Input fields and buttons align properly on all screen sizes.
+        2- Room code is easily copyable/selectable on mobile.
+        3- Join/Create buttons remain visible without scrolling.
+
+    f- Orientation Changes
+        1- Switching between portrait and landscape retains layout integrity.
+        2- No key elements (e.g., board, buttons) are clipped or hidden.
