@@ -1,0 +1,14 @@
+1 - homepage loads
+    local hosts connect
+    user joins room
+    no user join rooms it is already in. 
+2 - sign-up / log-in options
+    gives sign-up option with google
+3 - Default game state
+    Game initializes
+    empty boards
+4 - game rendering
+    game states synchronously changing for both players
+5 - game logic
+    correct moves 
+    O and X 
